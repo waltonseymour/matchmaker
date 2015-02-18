@@ -31,31 +31,23 @@ class StateSpace(object):
     state = self.inial_state
     visited = set()
     while state.conflicts() > 0:
-      visited.add(tuple(state.partial_solution))
-      # sets state to best neighbor
       if tuple(state.partial_solution) in visited:
         print "RESTARTING"
         state = Node(self, [random.randint(0, len(self.sites)-1) for x in self.people])
-        print state
-        print state.conflicts()
-      else:  
-        state = min(state.neighbors(), key= lambda x: x.conflicts())
+      else:
+        visited.add(tuple(state.partial_solution))
+        valid_neighbors = [x for x in state.neighbors() if tuple(x.partial_solution) not in visited]
+        state = min(valid_neighbors, key= lambda x: x.conflicts())
 
-    self.solution = state
-    self.present_solution()
-
-  def present_solution(self):
-    for index, assignment in enumerate(self.solution.partial_solution):
+    for index, assignment in enumerate(state.partial_solution):
       print self.people[index].name + "->" + self.sites[assignment].name
 
 
 class Node(StateSpace):
   def __init__(self, parent, partial_solution):
     # partial solution takes the form [site_index, site_index ...] with one entry for ever person
-    # None denotes unassigned value
     self.parent = parent
     self.partial_solution = partial_solution
-    #print self.neighbors()
 
   def __repr__(self):
     return str(self.partial_solution)
@@ -73,7 +65,6 @@ class Node(StateSpace):
           new_state = Node(self.parent, new_state)
           ret.append(new_state)
     return ret
-      
 
   def conflicts(self):
     '''calculates the total number of conflicts given in the partial solution'''
@@ -86,7 +77,7 @@ class Node(StateSpace):
           site_population[assignment] += 1
         else:
           site_population[assignment] = 1
-        
+
         # checks if site is available to the person
         if self.parent.sites[assignment].meeting_time not in self.parent.people[index].available_times:
           total += 1
@@ -94,17 +85,21 @@ class Node(StateSpace):
     for site_index, population in site_population.iteritems():
       if population > self.parent.sites[site_index].capacity:
         total += 1
-
     return total
 
 if __name__ == '__main__':
+  people = [Person("person1", [1, 2, 3], True),
+            Person("person2", [1]),
+            Person("person3", [1, 2, 3], True),
+            Person("person4", [2]),
+            Person("person5", [1, 3]),
+            Person("person6", [1, 2]),
+            Person("person7", [3], True),
+            Person("person8", [1, 2, 3]),
+            Person("person9", [1]),
+            Person("person10", [3])]
   
-  people = [Person("person1", [1, 2, 3]),
-            Person("person2", [1, 2]),
-            Person("person3", [2, 3]),
-            Person("person4", [3])]
-  
-  sites = [Site("site1", 1, 1), Site("site2", 2, 1), Site("site3", 3, 2)]
+  sites = [Site("site1", 1, 3), Site("site2", 2, 3), Site("site3", 3, 4)]
 
   temp = StateSpace(people, sites)
   temp.search()

@@ -13,25 +13,44 @@ def assign_drivers(drivers, locations):
       ret[driver] = matching.matching[i] - len(drivers)
   return ret
 
-
 class matcher(object):
   def remove_edge(self, u, v):
     index = self.get_edge_index(u, v)
     self.capacity[index] = 0
-      
+
   def get_edge_index(self, u, v):
     # needs to check if u and v are in the same partition
     if u > v:
       u, v = v, u
     elif u == v:
-      # error
       raise Exception("U cannot equal V")
     return self.m * u + (v - self.n)
 
-  def __init__(self, n, m):
-    self.n = n
-    self.m = m
-    self.g = Graph.Full_Bipartite(n, m)
+  def get_verticies_from_edge_index(self, index):
+    u = index / self.m
+    v = (index % self.m) + self.n
+    return (u, v)
+
+
+  def __init__(self, people, sites):
+    self.people = people
+    self.sites = sites
+    self.n = len(self.people)
+    self.m = len(self.sites)
+
+    # edges between people and sites
+    self.capacity = [x[1] for x in self.people for _ in range(self.m)]
+    # edges between start and people
+    self.capacity += [x[1] for x in self.people]
+    # edges between sites and end
+    self.capacity += [x[1] for x in self.sites]
+    self.g = Graph.Full_Bipartite(self.n, self.m)
+
+  def pretty_print(self):
+    for i, edge in enumerate(self.flow.flow):
+      if edge > 0 and i < self.m * self.n:
+        u, v = self.get_verticies_from_edge_index(i)
+        print self.people[u][0], "->", self.sites[v - self.n][0]
 
   def match(self):
     # adds start and finish
@@ -43,12 +62,7 @@ class matcher(object):
     start_edges = [(start_index, i) for i in range(self.n)]
     end_edges = [(i + self.n, end_index) for i in range(self.m)]
     self.g.add_edges(start_edges + end_edges)
-    
-    
-    # sets all edges to 1, arbitrarily sets group size to 2 for testing
-    self.capacity = [1] * (self.n * self.m + self.n)
-    self.capacity += [2] * self.m
-    
+
     #insert logic for removing edges in graph here
 
     self.flow = self.g.maxflow(start_index, end_index, self.capacity)
@@ -56,5 +70,7 @@ class matcher(object):
 
 if __name__ == '__main__':
   # for testing
-  temp = matcher(4, 2)
-  print temp.match()
+  temp = matcher([("david", 1), ("max", 1), ("mary", 4)], [("school1", 4), ("school2", 3)])
+  print temp.match().flow
+  temp.pretty_print()
+  #print temp.get_verticies_from_edge_index(7)
