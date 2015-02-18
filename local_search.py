@@ -3,10 +3,11 @@
 import random
 
 class Person(object):
-  def __init__(self, name, available_times, is_driver=False):
+  def __init__(self, name, available_times, is_driver=False, size=1):
     self.name = name
     self.available_times = available_times
     self.is_driver = is_driver
+    self.size = size
   
   def __repr__(self):
     return self.name
@@ -37,7 +38,8 @@ class StateSpace(object):
       else:
         visited.add(tuple(state.partial_solution))
         valid_neighbors = [x for x in state.neighbors() if tuple(x.partial_solution) not in visited]
-        state = min(valid_neighbors, key= lambda x: x.conflicts())
+        if valid_neighbors:
+          state = min(valid_neighbors, key= lambda x: x.conflicts())
 
     for index, assignment in enumerate(state.partial_solution):
       print self.people[index].name + "->" + self.sites[assignment].name
@@ -67,31 +69,33 @@ class Node(StateSpace):
     return ret
 
   def conflicts(self):
-    '''calculates the total number of conflicts given in the partial solution'''
+    '''calculates the total number of conflicts in the given solution'''
     total = 0
-    site_population = {}
+    site_population = [0] * len(self.parent.sites)
+    site_has_driver = [False] * len(self.parent.sites)
     for index, assignment in enumerate(self.partial_solution):
       if assignment is not None:
-        # counts number of people per site
-        if assignment in site_population:
-          site_population[assignment] += 1
-        else:
-          site_population[assignment] = 1
+        site_population[assignment] += self.parent.people[index].size
+        if self.parent.people[index].is_driver:
+          site_has_driver[assignment] = True
 
         # checks if site is available to the person
         if self.parent.sites[assignment].meeting_time not in self.parent.people[index].available_times:
           total += 1
 
-    for site_index, population in site_population.iteritems():
+    for site_index, population in enumerate(site_population):
       if population > self.parent.sites[site_index].capacity:
         total += 1
+
+    total += site_has_driver.count(False)
+
     return total
 
 if __name__ == '__main__':
-  people = [Person("person1", [1, 2, 3], True),
+  people = [Person("person1", [1, 2, 3], True, 2),
             Person("person2", [1]),
             Person("person3", [1, 2, 3], True),
-            Person("person4", [2]),
+            Person("person4", [2], False, 3),
             Person("person5", [1, 3]),
             Person("person6", [1, 2]),
             Person("person7", [3], True),
@@ -99,7 +103,7 @@ if __name__ == '__main__':
             Person("person9", [1]),
             Person("person10", [3])]
   
-  sites = [Site("site1", 1, 3), Site("site2", 2, 3), Site("site3", 3, 4)]
+  sites = [Site("site1", 1, 4), Site("site2", 2, 5), Site("site3", 3, 6)]
 
   temp = StateSpace(people, sites)
   temp.search()
