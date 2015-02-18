@@ -3,11 +3,12 @@
 import random
 
 class Person(object):
-  def __init__(self, name, available_times, is_driver=False, size=1):
+  def __init__(self, name, available_times, is_driver=False, size=1, is_site_leader=False):
     self.name = name
     self.available_times = available_times
     self.is_driver = is_driver
     self.size = size
+    self.is_site_leader = is_site_leader
   
   def __repr__(self):
     return self.name
@@ -73,11 +74,14 @@ class Node(StateSpace):
     total = 0
     site_population = [0] * len(self.parent.sites)
     site_has_driver = [False] * len(self.parent.sites)
+    site_has_leader = [False] * len(self.parent.sites)
     for index, assignment in enumerate(self.partial_solution):
       if assignment is not None:
         site_population[assignment] += self.parent.people[index].size
         if self.parent.people[index].is_driver:
           site_has_driver[assignment] = True
+        if self.parent.people[index].is_site_leader:
+          site_has_leader[assignment] = True
 
         # checks if site is available to the person
         if self.parent.sites[assignment].meeting_time not in self.parent.people[index].available_times:
@@ -88,17 +92,18 @@ class Node(StateSpace):
         total += 1
 
     total += site_has_driver.count(False)
+    total += site_has_leader.count(False)
 
     return total
 
 if __name__ == '__main__':
-  people = [Person("person1", [1, 2, 3], True, 2),
+  people = [Person("person1", [1, 2, 3], is_driver=True, size=2, is_site_leader=True ),
             Person("person2", [1]),
-            Person("person3", [1, 2, 3], True),
-            Person("person4", [2], False, 3),
-            Person("person5", [1, 3]),
-            Person("person6", [1, 2]),
-            Person("person7", [3], True),
+            Person("person3", [1, 2, 3], is_driver=True),
+            Person("person4", [2], size=3),
+            Person("person5", [1, 3], is_site_leader=True),
+            Person("person6", [1, 2], is_site_leader=True),
+            Person("person7", [3], is_driver=True),
             Person("person8", [1, 2, 3]),
             Person("person9", [1]),
             Person("person10", [3])]
