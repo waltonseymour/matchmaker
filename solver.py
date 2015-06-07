@@ -27,25 +27,27 @@ class StateSpace(object):
     def __init__(self, people, sites):
         self.people = people
         self.sites = sites
-        self.inial_state = Node(self, [random.randint(0, len(self.sites)-1) for x in self.people])
+        self.initial_state = self.random_state()
 
     def search(self):
         '''searches the state space until a valid solution is found'''
-        state = self.inial_state
+        self.state = self.initial_state
         visited = set()
-        while state.conflicts() > 0:
-            if tuple(state.partial_solution) in visited:
+        while self.state.conflicts() > 0:
+            if tuple(self.state.partial_solution) in visited:
                 print "RESTARTING"
-                state = Node(self, [random.randint(0, len(self.sites)-1) for x in self.people])
+                self.state = self.random_state()
             else:
-                visited.add(tuple(state.partial_solution))
-                valid_neighbors = [x for x in state.neighbors() if tuple(x.partial_solution) not in visited]
-            if valid_neighbors:
-                state = min(valid_neighbors, key= lambda x: x.conflicts())
+                visited.add(tuple(self.state.partial_solution))
+                valid_neighbors = [x for x in self.state.neighbors() if tuple(x.partial_solution) not in visited]
+                if valid_neighbors:
+                    self.state = min(valid_neighbors, key= lambda x: x.conflicts())
 
-        for index, assignment in enumerate(state.partial_solution):
+        for index, assignment in enumerate(self.state.partial_solution):
             print self.people[index].name + "->" + self.sites[assignment].name
 
+    def random_state(self):
+        return Node(self, [random.randint(0, len(self.sites)-1) for _ in self.people])
 
 class Node(object):
     def __init__(self, parent, partial_solution):
@@ -59,6 +61,7 @@ class Node(object):
         return (None not in self.partial_solution)
 
     def neighbors(self):
+        '''returns a list of all neighboring nodes'''
         ret = []
         for index, assignment in enumerate(self.partial_solution):
             for site_index, _ in enumerate(self.parent.sites):
