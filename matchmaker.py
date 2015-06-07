@@ -34,82 +34,68 @@ class StateSpace(object):
         self.state = self.initial_state
         visited = set()
         while self.state.conflicts() > 0:
-            if tuple(self.state.partial_solution) in visited:
+            if tuple(self.state.assignments) in visited:
                 print "RESTARTING"
                 self.state = self.random_state()
             else:
-                visited.add(tuple(self.state.partial_solution))
-                valid_neighbors = [x for x in self.state.neighbors() if tuple(x.partial_solution) not in visited]
+                visited.add(tuple(self.state.assignments))
+                valid_neighbors = [x for x in self.state.neighbors() if tuple(x.assignments) not in visited]
                 if valid_neighbors:
                     self.state = min(valid_neighbors, key= lambda x: x.conflicts())
 
-        for index, assignment in enumerate(self.state.partial_solution):
-            print self.people[index].name + "->" + self.sites[assignment].name
+        # SOLUTION FOUND
+        # returns a dictionary of people to site assignments
+        return {self.people[index]: self.sites[assignment] for index, assignment
+        in enumerate(self.state.assignments)}
+
 
     def random_state(self):
         return Node(self, [random.randint(0, len(self.sites)-1) for _ in self.people])
 
 class Node(object):
-    def __init__(self, parent, partial_solution):
-        # partial solution takes the form [site_index, site_index ...] with one entry for ever person
-        self.parent = parent
-        self.partial_solution = partial_solution
+    def __init__(self, state_space, assignments):
+        # partial solution takes the form [site_index, site_index ...] with one entry for every person
+        self.state_space = state_space
+        self.assignments = assignments
     def __repr__(self):
-        return str(self.partial_solution)
+        return str(self.assignments)
 
     def is_complete(self):
-        return (None not in self.partial_solution)
+        return (None not in self.assignments)
 
     def neighbors(self):
         '''returns a list of all neighboring nodes'''
         ret = []
-        for index, assignment in enumerate(self.partial_solution):
-            for site_index, _ in enumerate(self.parent.sites):
+        for index, assignment in enumerate(self.assignments):
+            for site_index, _ in enumerate(self.state_space.sites):
                 if assignment != site_index:
-                    new_state = self.partial_solution[:]
+                    new_state = self.assignments[:]
                     new_state[index] = site_index
-                    new_state = Node(self.parent, new_state)
+                    new_state = Node(self.state_space, new_state)
                     ret.append(new_state)
         return ret
 
     def conflicts(self):
         '''calculates the total number of conflicts in the given solution'''
         total = 0
-        site_population = [0] * len(self.parent.sites)
-        site_has_driver = [False] * len(self.parent.sites)
-        site_has_leader = [False] * len(self.parent.sites)
-        for index, assignment in enumerate(self.partial_solution):
+        site_population = [0] * len(self.state_space.sites)
+        site_has_driver = [False] * len(self.state_space.sites)
+        site_has_leader = [False] * len(self.state_space.sites)
+        for index, assignment in enumerate(self.assignments):
             if assignment is not None:
-                site_population[assignment] += self.parent.people[index].size
-                if self.parent.people[index].is_driver and not site_has_driver[assignment]:
+                site_population[assignment] += self.state_space.people[index].size
+                if self.state_space.people[index].is_driver and not site_has_driver[assignment]:
                     site_has_driver[assignment] = True
-                if self.parent.people[index].is_site_leader and not site_has_leader[assignment]:
+                if self.state_space.people[index].is_site_leader and not site_has_leader[assignment]:
                     site_has_leader[assignment] = True
                 # checks if site is available to the person
-                if self.parent.sites[assignment].meeting_time not in self.parent.people[index].available_times:
+                if self.state_space.sites[assignment].meeting_time not in self.state_space.people[index].available_times:
                     total += 1
 
         for site_index, population in enumerate(site_population):
-            if population > self.parent.sites[site_index].capacity:
+            if population > self.state_space.sites[site_index].capacity:
                 total += 1
         total += site_has_driver.count(False)
         total += site_has_leader.count(False)
 
         return total
-
-if __name__ == '__main__':
-    people = [Person("person1", [1, 2, 3], is_driver=True, size=2, is_site_leader=True ),
-            Person("person2", [1]),
-            Person("person3", [1, 2, 3], is_driver=True),
-            Person("person4", [2], size=2),
-            Person("person5", [1, 3], is_site_leader=True),
-            Person("person6", [1, 2], is_site_leader=True),
-            Person("person7", [3], is_driver=True),
-            Person("person8", [1, 2, 3], is_driver=True, is_site_leader=True),
-            Person("person9", [1]),
-            Person("person10", [3])]
-
-    sites = [Site("site1", 1, 4), Site("site2", 2, 3), Site("site3", 3, 4), Site("site4", 2, 3)]
-
-    temp = StateSpace(people, sites)
-    temp.search()
