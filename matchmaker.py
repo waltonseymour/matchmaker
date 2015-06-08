@@ -32,21 +32,25 @@ class StateSpace(object):
     def search(self):
         '''searches the state space until a valid solution is found'''
         visited = set()
-        while self.state.conflicts() > 0:
+        min_conflict = self.state
+        iter_count = 0
+        while self.state.conflicts() > 0 and iter_count < 1000:
+            iter_count += 1
             if tuple(self.state.assignments) in visited:
-                print "RESTARTING"
+                #restarts if we are in an explored node
                 self.state = self.random_state()
             else:
                 visited.add(tuple(self.state.assignments))
                 valid_neighbors = [x for x in self.state.neighbors() if tuple(x.assignments) not in visited]
                 if valid_neighbors:
                     self.state = min(valid_neighbors, key= lambda x: x.conflicts())
+                    min_conflict = min([self.state, min_conflict], key= lambda x: x.conflicts())
 
-        # SOLUTION FOUND
+        if min_conflict.conflicts() > 0:
+            print "No solution found. " +  str(min_conflict.conflicts()) + " conflicts"
         # returns a dictionary of people to site assignments
         return {self.people[index]: self.sites[assignment] for index, assignment
         in enumerate(self.state.assignments)}
-
 
     def random_state(self):
         return Node(self, [random.randint(0, len(self.sites)-1) for _ in self.people])
@@ -88,7 +92,8 @@ class Node(object):
                 if self.state_space.people[index].is_site_leader and not site_has_leader[assignment]:
                     site_has_leader[assignment] = True
                 # checks if site is available to the person
-                if self.state_space.sites[assignment].meeting_time not in self.state_space.people[index].available_times:
+                if self.state_space.sites[assignment].meeting_time not in \
+                   self.state_space.people[index].available_times:
                     total += 1
 
         for site_index, population in enumerate(site_population):
