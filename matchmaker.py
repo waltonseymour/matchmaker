@@ -27,11 +27,10 @@ class StateSpace(object):
     def __init__(self, people, sites):
         self.people = people
         self.sites = sites
-        self.initial_state = self.random_state()
+        self.state = self.random_state()
 
     def search(self):
         '''searches the state space until a valid solution is found'''
-        self.state = self.initial_state
         visited = set()
         while self.state.conflicts() > 0:
             if tuple(self.state.assignments) in visited:
