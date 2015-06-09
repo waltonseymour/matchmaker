@@ -63,9 +63,6 @@ class Node(object):
     def __repr__(self):
         return str(self.assignments)
 
-    def is_complete(self):
-        return (None not in self.assignments)
-
     def neighbors(self):
         '''returns a list of all neighboring nodes'''
         ret = []
